@@ -1,0 +1,39 @@
+syntax = "proto3";
+option java_package = "com.yunxin.client.app.message";
+option java_outer_classname = "AppAuth";
+
+message CHeader {
+    int32 seqNo = 1;
+    int32 appId = 2;
+}
+
+enum CMDType {
+    Touch = 0;
+    PreAuth = 1;
+
+}
+
+message Request {
+    CHeader header = 1;
+    oneof body{
+        TouchReq toucReq = 2;
+        PreAuthReq preAuthReq = 3;
+    }
+}
+
+message TouchReq{
+    
+}
+
+message PreAuthReq{
+
+}
+
+
+
+
+
+
+
+
+
