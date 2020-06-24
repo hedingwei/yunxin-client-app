@@ -18,7 +18,6 @@ import com.yunxin.utils.ui.Animator;
 import com.yunxin.utils.ui.TrayPopupMenu;
 
 import javax.imageio.ImageIO;
-import javax.management.relation.Relation;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
