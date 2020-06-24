@@ -3,7 +3,10 @@ package com.yunxin.tcp.app;
 import bsh.Interpreter;
 import com.alibaba.fastjson.JSON;
 import com.yunxin.protocol.cmd.AbstractCmdProcessor;
+import com.yunxin.protocol.cmd.GetSmsVCodeRespProcessor;
+import com.yunxin.protocol.cmd.SmsVCodeVerifyRespProcessor;
 import com.yunxin.protocol.cmd.TouchResponseProcessor;
+import com.yunxin.tcp.app.ui.LoginWindow;
 import com.yunxin.tcp.client.ConnectionListener;
 import com.yunxin.tcp.client.MessageListener;
 import com.yunxin.tcp.client.YcTcpClient;
@@ -15,6 +18,7 @@ import com.yunxin.utils.ui.Animator;
 import com.yunxin.utils.ui.TrayPopupMenu;
 
 import javax.imageio.ImageIO;
+import javax.management.relation.Relation;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -23,9 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class YxAppImpl implements ConnectionListener, MessageListener {
@@ -33,6 +35,8 @@ public class YxAppImpl implements ConnectionListener, MessageListener {
     TrayPopupMenu pm;
 
     YcTcpClient yxTcpClient;
+
+    LoginWindow loginWindow;
 
     BufferedImage connectedIcon;
     BufferedImage disconnectedIcon;
@@ -42,17 +46,25 @@ public class YxAppImpl implements ConnectionListener, MessageListener {
 
     private boolean isConnected = false;
 
+    private String deviceId;
+
+
     Interpreter interpreter = new Interpreter();
 
     JFrame frame = null;
 
     JMenuItem controlCenter = null;
 
+    JMenuItem loginMenuItem = null;
+
     static Map<String,Class<? extends AbstractCmdProcessor>> processors = new HashMap<>();
     {
         processors.put("touchResp", TouchResponseProcessor.class);
+        processors.put("getSmsVerifyCode", GetSmsVCodeRespProcessor.class);
+        processors.put("smsCodeVerify", SmsVCodeVerifyRespProcessor.class);
     }
     public YxAppImpl() {
+
         try {
             connectedIcon = ImageIO.read(new ByteArrayInputStream(Work.getResource("connected.png")));
             disconnectedIcon = ImageIO.read(new ByteArrayInputStream(Work.getResource("disconnected.png")));
@@ -72,6 +84,7 @@ public class YxAppImpl implements ConnectionListener, MessageListener {
         }
 
 
+        deviceId = Reflection.generateUUIDPerComputer();
         pm = Work.UI.SystemTray.getPopupMenu();
         Work.UI.SystemTray.setSystemTrayInfo("小微助手",disconnectedIcon,null);
         initMenus();
@@ -111,14 +124,25 @@ public class YxAppImpl implements ConnectionListener, MessageListener {
         serverAddressProvider = new IYxServerAddressProvider() {
             @Override
             public String getHost() {
-                return "14.63.165.127";
+                return "localhost";
             }
 
             @Override
             public int getPort() {
-                return 443;
+                return 5500;
             }
         };
+//        serverAddressProvider = new IYxServerAddressProvider() {
+//            @Override
+//            public String getHost() {
+//                return "14.63.165.127";
+//            }
+//
+//            @Override
+//            public int getPort() {
+//                return 443;
+//            }
+//        };
 
 //        serverAddressProvider = new IYxServerAddressProvider() {
 //            @Override
@@ -173,8 +197,8 @@ public class YxAppImpl implements ConnectionListener, MessageListener {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    Desktop.getDesktop().browse(new URI("http://120.76.121.210"));
-//                    Desktop.getDesktop().browse(new URI("http://14.63.165.127"));
+//                    Desktop.getDesktop().browse(new URI("http://120.76.121.210"));
+                    Desktop.getDesktop().browse(new URI("http://14.63.165.127"));
                 } catch (IOException ioException) {
                     ioException.printStackTrace();
                 } catch (URISyntaxException uriSyntaxException) {
@@ -183,6 +207,32 @@ public class YxAppImpl implements ConnectionListener, MessageListener {
             }
         });
 
+
+        loginMenuItem = new JMenuItem("登陆");
+        loginMenuItem.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(loginWindow!=null){
+                    try {
+                        loginWindow.dispose();
+                        loginWindow = null;
+                    }catch (Throwable t){
+                        t.printStackTrace();
+                    }
+                }else{
+                    loginWindow = new LoginWindow();
+                    loginWindow.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+                    loginWindow.setYxApp(YxAppImpl.this);
+                    loginWindow.setLocationRelativeTo(null);
+                    loginWindow.setResizable(false);
+                    loginWindow.setVisible(true);
+                    loginWindow.setAlwaysOnTop(true);
+                }
+            }
+        });
+
+
+        pm.add(loginMenuItem);
         pm.add(controlCenter);
         pm.add(new JSeparator());
         pm.add(new JMenuItem("退出"){
@@ -285,5 +335,27 @@ public class YxAppImpl implements ConnectionListener, MessageListener {
         });
 
 
+    }
+
+    public void send(Map<String,Object> data){
+        try {
+            yxTcpClient.send(data);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void send(String command, Map<String,Object> data){
+        Map<String, Object> map = new HashMap<>();
+        map.put("command",command);
+        map.put("data", Reflection.string2JSonObject(Reflection.javaObject2JSONString(data)));
+        send(map);
+    }
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public LoginWindow getLoginWindow() {
+        return loginWindow;
     }
 }

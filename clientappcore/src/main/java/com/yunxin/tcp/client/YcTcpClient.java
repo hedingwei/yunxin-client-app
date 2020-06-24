@@ -35,13 +35,9 @@ public class YcTcpClient extends SimpleChannelInboundHandler<byte[]> implements 
 
     private Integer connectTimeout = 5;
 
-
-
-
     public YcTcpClient() {
         this(0);
     }
-
 
     public YcTcpClient(int port) {
         this("localhost", port);
